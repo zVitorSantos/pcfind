@@ -4,11 +4,11 @@
     <div class="totals">
       <div class="total">
         <label>À vista:</label>
-        <div>{{ totalCashPrice }}</div>
+        <div>{{ totalCash }}</div>
       </div>
       <div class="total">
         <label>Parcelado:</label>
-        <div>{{ totalInstallmentPrice }}</div>
+        <div>{{ totalInstallment }}</div>
       </div>
       <div class="total">
         <label>Selecionado:</label>
@@ -19,34 +19,30 @@
 </template>
 
 <script setup>
-import { computed, defineProps } from 'vue'
+import { defineProps, toRefs } from 'vue'
 
 const props = defineProps({
-  items: Array,
-  subtotals: Array
+  totalCash: Number,
+  totalInstallment: Number,
+  selectedTotal: Number,
+  subtotals: Array,
+  items: Array
 })
 
-const totalCashPrice = computed(() => {
-  return props.subtotals.reduce((total, subtotal) => total + subtotal.subtotalCash, 0)
-})
-
-const totalInstallmentPrice = computed(() => {
-  return props.subtotals.reduce((total, subtotal) => total + subtotal.subtotalInstallment, 0)
-})
-
-const selectedTotal = computed(() => {
-  return props.items.reduce((total, item) => {
-    const price = item.selectedPriceType === 'cash' ? parseFloat(item.cashPrice) : parseFloat(item.installmentPrice)
-    return total + (price * parseFloat(item.quantity))
-  }, 0)
-})
+const { totalCash, totalInstallment, selectedTotal } = toRefs(props)
 </script>
 
 <style scoped>
+.results {
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
 .totals {
   display: flex;
   justify-content: center;
   gap: 1rem;
+  box-sizing: border-box;
 }
 
 .total {
@@ -56,6 +52,7 @@ const selectedTotal = computed(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  box-sizing: border-box;
 }
 
 .total label {

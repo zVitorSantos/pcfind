@@ -13,15 +13,15 @@
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(subtotal, index) in subtotals" :key="index">
-            <td>{{ `${subtotal.component} ${subtotal.quantity > 1 ? `${subtotal.quantity}x` : ''}` }}</td>
-            <td>{{ subtotal.cashPrice }}</td>
-            <td>{{ subtotal.installmentPrice }}</td>
-            <td>
-              <select v-model="subtotal.selectedPriceType">
-                <option value="cash">À vista</option>
-                <option value="installment">Parcelado</option>
-              </select>
+            <tr v-for="(subtotal, index) in subtotals" :key="index">
+              <td>{{ `${subtotal.component} ${subtotal.quantity > 1 ? `${subtotal.quantity}x` : ''}` }}</td>
+              <td>{{ subtotal.subtotalCash }}</td>
+              <td>{{ subtotal.subtotalInstallment }}</td> 
+              <td>
+              <select v-model="subtotal.selectedPriceType" @change="updateSelectedPriceType(index, $event.target.value)">
+              <option value="cash">À vista</option>
+              <option value="installment">Parcelado</option>
+            </select>
             </td>
           </tr>
         </tbody>
@@ -31,48 +31,119 @@
 </template>
 
 <script setup>
-import { computed, defineProps } from 'vue'
+import { computed, defineProps, defineEmits, watchEffect } from 'vue'
 
 const props = defineProps({
   items: Array
 })
 
+// Mapeamento de nomes de componentes com correspondência flexível
 const componentNames = {
-  'Placa Mãe': 'Placa Mãe',
-  'Processador': 'Processador',
-  'Memória RAM': 'Memória RAM',
-  'Disco Rígido': 'Disco Rígido',
-  'SSD': 'SSD',
-  'Placa de Vídeo': 'Placa de Vídeo',
-  'Fonte': 'Fonte de Alimentação',
-  'Cooler': 'Cooler',
-  'Gabinete': 'Gabinete',
-  'Monitor': 'Monitor',
-  'Teclado': 'Teclado',
-  'Mouse': 'Mouse',
-  'Headset': 'Headset',
-  'Placa de Rede': 'Placa de Rede',
-  'Placa de Som': 'Placa de Som'
+  'placa mãe': 'Placa Mãe',
+  'processador': 'Processador',
+  'memória': 'Memória RAM',
+  'hd': 'Disco Rígido',
+  'ssd': 'SSD',
+  'placa de vídeo': 'Placa de Vídeo',
+  'fonte': 'Fonte',
+  'cooler': 'Cooler',
+  'gabinete': 'Gabinete',
+  'monitor': 'Monitor',
+  'teclado': 'Teclado',
+  'mouse': 'Mouse',
+  'headset': 'Headset',
+  'placa de rede': 'Placa de Rede',
+  'placa de som': 'Placa de Som'
+}
+
+const findComponentName = (title) => {
+  if (!title) {
+    return title;
+  }
+
+  // Extrair o nome do componente do título
+  const component = title.split(',')[0];
+
+  const normalizedComponent = component.toLowerCase(); // Converter para minúsculas
+  for (const key in componentNames) {
+    const normalizedKey = key.toLowerCase(); // Converter para minúsculas
+    if (normalizedComponent.includes(normalizedKey)) {
+      return componentNames[key]; // Retornar o nome correspondente
+    }
+  }
+
+  // Se não houver correspondência, retornar o nome do componente
+  return component;
 }
 
 const subtotals = computed(() => {
+  if (!props.items || props.items.length === 0) {
+    return [];
+  }
+
   return props.items.map(item => {
+    const quantity = Number(item.quantity);
+    const cashPrice = parseFloat(item.cashPrice.toString().replace(',', '.')) * quantity;
+    const installmentPrice = parseFloat(item.installmentPrice.toString().replace(',', '.')) * quantity;
+
+    if (isNaN(quantity) || isNaN(cashPrice) || isNaN(installmentPrice)) {
+      // Handle error...
+      return null;
+    }
+
+    const componentDisplayName = findComponentName(item.title);
+
     return {
       ...item,
-      component: componentNames[item.component] || item.component,
-      subtotalCash: item.quantity * item.cashPrice,
-      subtotalInstallment: item.quantity * item.installmentPrice
+      component: componentDisplayName,
+      subtotalCash: cashPrice,
+      subtotalInstallment: installmentPrice,
+      selectedPriceType: item.selectedPriceType
     }
-  })
+  }).filter(item => item !== null)
 })
 
 const totalCash = computed(() => {
+  if (!subtotals.value || subtotals.value.length === 0) {
+    return 0;
+  }
+
   return subtotals.value.reduce((total, item) => total + item.subtotalCash, 0)
 })
 
 const totalInstallment = computed(() => {
+  if (!subtotals.value || subtotals.value.length === 0) {
+    return 0;
+  }
+
   return subtotals.value.reduce((total, item) => total + item.subtotalInstallment, 0)
 })
+
+const selectedTotal = computed(() => {
+  if (!subtotals.value || subtotals.value.length === 0) {
+    return 0;
+  }
+
+  return subtotals.value.reduce((total, item) => {
+    return total + (item.selectedPriceType === 'cash' ? item.subtotalCash : item.subtotalInstallment)
+  }, 0)
+})
+
+const emit = defineEmits(['updateItem', 'updateTotals', 'update:selectedPriceType'])
+
+watchEffect(() => {
+  emit('updateTotals', {
+    totalCash: totalCash.value,
+    totalInstallment: totalInstallment.value,
+    selectedTotal: selectedTotal.value,
+    subtotals: subtotals.value,
+    items: props.items
+  })
+})
+
+const updateSelectedPriceType = (index, selectedPriceType) => {
+  emit('update:selectedPriceType', { index, selectedPriceType });
+}
 </script>
 
 <style scoped>

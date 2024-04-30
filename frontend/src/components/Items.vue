@@ -36,7 +36,7 @@ const emit = defineEmits(['update:modelValue'])
 
 const item = ref(props.modelValue || {
   title: '',
-  quantity: 0,
+  quantity: 1,
   site: '',
   cashPrice: 0,
   installmentPrice: 0
@@ -56,19 +56,24 @@ watchEffect(() => {
 })
 
 const searchItem = async () => {
-  try {
-    const response = await axios.post('http://localhost:5000/search', { link: item.value.site });
-    // Atualize o item com a resposta do servidor
-    item.value.title = response.data.component;
-    item.value.cashPrice = response.data.cash_price;
-    item.value.installmentPrice = response.data.installment_price;
+  if (item && item.value) {
+    try {
+      const response = await axios.post('http://localhost:5000/search', { link: item.value.site });
+      // Atualize o item com a resposta do servidor
+      item.value.title = response.data.component;
+      item.value.cashPrice = response.data.cash_price;
+      item.value.installmentPrice = response.data.installment_price;
+      item.value.quantity = 1; 
 
-    // Switch to manual entry mode
-    manualEntry.value = true;
-  } catch (error) {
-    console.error(error);
+      // Switch to manual entry mode
+      manualEntry.value = true;
+    } catch (error) {
+      console.error(error);
+    }
+  } else {
+    console.error('item is undefined')
   }
-};
+}
 </script>
 
 <style scoped>

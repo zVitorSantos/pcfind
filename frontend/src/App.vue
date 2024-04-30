@@ -6,6 +6,7 @@
         <div class="items">
           <CalculatorItem v-for="(item, index) in items" :key="index" :modelValue="items[index]"
             @update:modelValue="newItem => updateItem(index, newItem)" />
+            <div class="spacer"></div>
         </div>
       </div>
       <div class="buttons">
@@ -14,87 +15,117 @@
       </div>
     </div>
     <div class="right">
-      <Subtotals :items="items" />
-      <Results :items="items" :subtotals="subtotals" />
+      <Subtotals 
+        :items="items" 
+        @update:selectedPriceType="handleUpdateSelectedPriceType" 
+        @updateTotals="updateTotals"
+      />
+      <Results 
+        :totalCash="totalCash" 
+        :totalInstallment="totalInstallment" 
+        :selectedTotal="selectedTotal" 
+        :subtotals="subtotals" 
+        :items="items" 
+      />
     </div>
   </div>
+  <div class="footer">
+      <ComputerParts />
+      <LatestAdditions />
+      <Contacts />
+    </div>
 </template>
 
 <script setup>
 import { ref, nextTick, computed } from 'vue'
-import CalculatorItem from './components/Items.vue'
-import Subtotals from './components/Subtotals.vue'
-import Results from './components/Results.vue'
+import CalculatorItem from './components/Items.vue';
+import Subtotals from './components/Subtotals.vue';
+import Results from './components/Results.vue';
+
+// Importando os componentes do rodapé
+import ComputerParts from './components/Footer/ComputerParts.vue';
+import LatestAdditions from './components/Footer/LatestAdditions.vue';
+import Contacts from './components/Footer/Contacts.vue';
 
 const items = ref([])
+const totalCash = ref(0)
+const totalInstallment = ref(0)
+const selectedTotal = ref(0)
+const subtotals = ref([])
+
 const addItem = () => {
-  items.value.push({
-    title: '',
-    quantity: 0,
-    site: '',
-    cashPrice: 0,
-    installmentPrice: 0
-  })
-  nextTick(() => {
-    const container = document.querySelector('.items')
-    container.scrollTop = container.scrollHeight
-  })
+  if (items && items.value) {
+    items.value.push({
+      title: '',
+      quantity: 1,
+      site: '',
+      cashPrice: 0,
+      installmentPrice: 0,
+      selectedPriceType: 'cash'
+    })
+    // Scroll automático para o novo item adicionado
+    nextTick(() => {
+      const container = document.querySelector('.items')
+      if (container) {
+        container.scrollTop = container.scrollHeight
+      }
+    })
+  } else {
+    console.error('items is undefined')
+  }
 }
 
+// Remover o último item da lista
 const removeItem = () => {
   items.value.pop()
 }
 
+// Atualizar um item na lista pelo índice
 const updateItem = (index, newItem) => {
-  items.value[index] = newItem
+  if (items.value[index]) {
+    items.value[index] = { ...items.value[index], ...newItem }
+  } else {
+    console.error(`Item at index ${index} does not exist`)
+  }
 }
 
-const componentNames = {
-  'Placa Mãe': 'Placa Mãe',
-  'Processador': 'Processador',
-  'Memória RAM': 'Memória RAM',
-  'Disco Rígido': 'Disco Rígido',
-  'SSD': 'SSD',
-  'Placa de Vídeo': 'Placa de Vídeo',
-  'Fonte': 'Fonte de Alimentação',
-  'Cooler': 'Cooler',
-  'Gabinete': 'Gabinete',
-  'Monitor': 'Monitor',
-  'Teclado': 'Teclado',
-  'Mouse': 'Mouse',
-  'Headset': 'Headset',
-  'Placa de Rede': 'Placa de Rede',
-  'Placa de Som': 'Placa de Som'
+const updateTotals = (totals) => {
+  console.log('updateTotals called with:', totals)
+  totalCash.value = isNaN(totals.totalCash) ? 0 : totals.totalCash
+  totalInstallment.value = isNaN(totals.totalInstallment) ? 0 : totals.totalInstallment
+  selectedTotal.value = isNaN(totals.selectedTotal) ? 0 : parseFloat(parseFloat(totals.selectedTotal).toFixed(2))
+  subtotals.value = Array.isArray(totals.subtotals) ? totals.subtotals : []
+  if (Array.isArray(totals.items)) {
+    items.value = totals.items 
+  } else {
+    console.error('totals.items is not an array')
+  }
 }
 
-// Compute subtotals based on items
-const subtotals = computed(() => {
-  return items.value.map(item => {
-    return {
-      ...item,
-      component: componentNames[item.component] || item.component,
-      subtotalCash: item.quantity * item.cashPrice,
-      subtotalInstallment: item.quantity * item.installmentPrice
-    }
-  })
-})
-
-const totalCash = computed(() => {
-  return subtotals.value.reduce((total, item) => total + item.subtotalCash, 0)
-})
-
-const totalInstallment = computed(() => {
-  return subtotals.value.reduce((total, item) => total + item.subtotalInstallment, 0)
-})
+// Função para lidar com a alteração do tipo de preço selecionado em um item
+const handleUpdateSelectedPriceType = ({ index, selectedPriceType }) => {
+  if (items.value[index]) {
+    items.value[index].selectedPriceType = selectedPriceType
+  } else {
+    console.error(`Item at index ${index} does not exist`)
+  }
+}
 </script>
+
 <style scoped>
 .app {
   display: flex;
+  flex-direction: row;
   justify-content: center;
   align-items: start;
   height: 100vh;
+  max-height: 100%;
   width: 100vw;
+  max-width: 100%;
   background-color: hsl(0, 0%, 14%);
+  box-sizing: border-box;
+  flex-wrap: wrap; 
+  gap: 1em;
 }
 
 .left h2 {
@@ -111,6 +142,7 @@ const totalInstallment = computed(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
+  overflow: auto;
 }
 
 .items-container {
@@ -119,27 +151,29 @@ const totalInstallment = computed(() => {
   gap: 1em;
   background-color: #1a1a1a;
   padding: 1em;
-  border-radius: 8px;
+  border-radius: 0.5rem;
   color: rgba(255, 255, 255, 0.87);
   border: 1px solid #646cff;
-  margin-bottom: 1em;
-  max-width: 500px;
+  margin-bottom: 1rem;
+  max-width: 31.25rem;
   width: 100%;
-  height: 890px;
-  max-height: calc(5 * 70px);
+  height: 56.33rem;
+  max-height: calc(5 * 5.33rem);
   scrollbar-width: none;
   overflow: overlay;
   overflow-y: overlay;
 }
 
-/* Para navegadores baseados em WebKit */
 .items-container::-webkit-scrollbar {
   display: none;
-  /* Isso esconde a barra de rolagem */
+}
+
+.spacer {
+  height: 0.1rem;
 }
 
 .left .items {
-  max-height: calc(5 * 88px);
+  max-height: calc(5 * 95px);
   margin-bottom: 1rem;
 }
 
@@ -149,12 +183,12 @@ const totalInstallment = computed(() => {
 
 .left .items::-webkit-scrollbar-track {
   background: #444;
-  border-radius: 4px;
+  border-radius: 0.2rem;
 }
 
 .left .items::-webkit-scrollbar-thumb {
   background: #888;
-  border-radius: 4px;
+  border-radius: 0.2rem;
 }
 
 .left .buttons {
@@ -165,5 +199,51 @@ const totalInstallment = computed(() => {
 
 .right>* {
   flex: 1;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%; 
+  max-width: 100%;
+  height: 13rem;
+  padding: 1em;
+  background-color: #1a1a1a;
+  color: rgba(255, 255, 255, 0.87);
+  border: 1px solid #646cff;
+  border-radius: 1rem;
+  margin-top: auto; 
+  box-sizing: border-box; 
+  overflow: hidden; 
+}
+
+.footer > div {
+  flex: 1;
+  margin: 0 0.5em;
+  overflow: hidden; 
+}
+
+.footer > div:first-child {
+  border-right: 1px solid #646cff;
+  padding-right: 0.5em;
+}
+
+.footer > div:last-child {
+  padding-left: 0.5em; 
+}
+
+/* Quando a largura da janela do navegador é 600px ou menos */
+@media (max-width: 600px) {
+  .app {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .left,
+  .right {
+    width: 100%; 
+    max-width: 100%; 
+  }
 }
 </style>

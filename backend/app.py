@@ -1,7 +1,6 @@
 from flask import Flask, make_response, request, jsonify
 from flask_cors import CORS
-from bs4 import BeautifulSoup
-import requests
+from utils import get_data_from_kabum , get_data_from_pichau, get_data_from_amazon
 
 def create_app():
     app = Flask(__name__)
@@ -21,31 +20,25 @@ def create_app():
             # Handle the POST request here
             data = request.get_json()
             link = data.get('link')
-            
-            # Make a GET request to the link
-            response = requests.get(link)
-            
-            # Parse the HTML of the page
-            soup = BeautifulSoup(response.text, 'html.parser')
-            
-            # Find the component text
-            component_element = soup.find('h1', class_='sc-58b2114e-6 brTtKt')
-            component = component_element.text if component_element else None
 
-            # Find the cash price
-            cash_price_element = soup.find('h4', class_='sc-5492faee-2 ipHrwP finalPrice')
-            cash_price = cash_price_element.text.replace('R$', '').replace('\u00a0', ' ') if cash_price_element else None
+            # Map hosts to functions
+            host_to_function = {
+                'www.kabum.com.br': get_data_from_kabum,
+                'www.pichau.com.br': get_data_from_pichau,
+                'www.amazon.com.br': get_data_from_amazon
+            }
 
-            # Find the installment price
-            installment_price_element = soup.find('b', class_='regularPrice')
-            installment_price = installment_price_element.text.replace('R$', '').replace('\u00a0', ' ') if installment_price_element else None
+            # Check if the link is from a supported host
+            for host, function in host_to_function.items():
+                if host in link:
+                    # Get the data from the link
+                    data = function(link)
 
-            # Return the extracted data as the response
-            return jsonify({
-                'component': component,
-                'cash_price': cash_price,
-                'installment_price': installment_price
-            })
+                    # Return the extracted data as the response
+                    return jsonify(data)
+
+            # If we get here, no supported host was found in the link
+            return jsonify({'error': 'Site não suportado para coleta automática.'}), 400
 
     return app
 

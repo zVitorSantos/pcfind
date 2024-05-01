@@ -6,7 +6,7 @@
         <div class="items">
           <CalculatorItem v-for="(item, index) in items" :key="index" :modelValue="items[index]"
             @update:modelValue="newItem => updateItem(index, newItem)" />
-            <div class="spacer"></div>
+          <div class="spacer"></div>
         </div>
       </div>
       <div class="buttons">
@@ -15,25 +15,17 @@
       </div>
     </div>
     <div class="right">
-      <Subtotals 
-        :items="items" 
-        @update:selectedPriceType="handleUpdateSelectedPriceType" 
-        @updateTotals="updateTotals"
-      />
-      <Results 
-        :totalCash="totalCash" 
-        :totalInstallment="totalInstallment" 
-        :selectedTotal="selectedTotal" 
-        :subtotals="subtotals" 
-        :items="items" 
-      />
+      <Subtotals :items="items" @update:selectedPriceType="handleUpdateSelectedPriceType"
+        @updateTotals="updateTotals" />
+      <Results :totalCash="totalCash" :totalInstallment="totalInstallment" :selectedTotal="selectedTotal"
+        :subtotals="subtotals" :items="items" />
     </div>
   </div>
   <div class="footer">
-      <ComputerParts />
-      <LatestAdditions />
-      <Contacts />
-    </div>
+    <ComputerParts :subtotals="subtotals" />
+    <LatestAdditions />
+    <Contacts />
+  </div>
 </template>
 
 <script setup>
@@ -91,12 +83,12 @@ const updateItem = (index, newItem) => {
 
 const updateTotals = (totals) => {
   console.log('updateTotals called with:', totals)
-  totalCash.value = isNaN(totals.totalCash) ? 0 : totals.totalCash
-  totalInstallment.value = isNaN(totals.totalInstallment) ? 0 : totals.totalInstallment
+  totalCash.value = isNaN(totals.totalCash) ? 0 : parseFloat(parseFloat(totals.totalCash).toFixed(2))
+  totalInstallment.value = isNaN(totals.totalInstallment) ? 0 : parseFloat(parseFloat(totals.totalInstallment).toFixed(2))
   selectedTotal.value = isNaN(totals.selectedTotal) ? 0 : parseFloat(parseFloat(totals.selectedTotal).toFixed(2))
   subtotals.value = Array.isArray(totals.subtotals) ? totals.subtotals : []
   if (Array.isArray(totals.items)) {
-    items.value = totals.items 
+    items.value = totals.items
   } else {
     console.error('totals.items is not an array')
   }
@@ -124,7 +116,7 @@ const handleUpdateSelectedPriceType = ({ index, selectedPriceType }) => {
   max-width: 100%;
   background-color: hsl(0, 0%, 14%);
   box-sizing: border-box;
-  flex-wrap: wrap; 
+  flex-wrap: wrap;
   gap: 1em;
 }
 
@@ -160,8 +152,9 @@ const handleUpdateSelectedPriceType = ({ index, selectedPriceType }) => {
   height: 56.33rem;
   max-height: calc(5 * 5.33rem);
   scrollbar-width: none;
-  overflow: overlay;
+  overflow: hidden;
   overflow-y: overlay;
+  overflow-x: hidden;
 }
 
 .items-container::-webkit-scrollbar {
@@ -205,7 +198,7 @@ const handleUpdateSelectedPriceType = ({ index, selectedPriceType }) => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 100%; 
+  width: 100%;
   max-width: 100%;
   height: 13rem;
   padding: 1em;
@@ -213,24 +206,24 @@ const handleUpdateSelectedPriceType = ({ index, selectedPriceType }) => {
   color: rgba(255, 255, 255, 0.87);
   border: 1px solid #646cff;
   border-radius: 1rem;
-  margin-top: auto; 
-  box-sizing: border-box; 
-  overflow: hidden; 
+  margin-top: auto;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
-.footer > div {
+.footer>div {
   flex: 1;
   margin: 0 0.5em;
-  overflow: hidden; 
+  overflow: hidden;
 }
 
-.footer > div:first-child {
+.footer>div:first-child {
   border-right: 1px solid #646cff;
   padding-right: 0.5em;
 }
 
-.footer > div:last-child {
-  padding-left: 0.5em; 
+.footer>div:last-child {
+  padding-left: 0.5em;
 }
 
 /* Quando a largura da janela do navegador é 600px ou menos */
@@ -242,8 +235,8 @@ const handleUpdateSelectedPriceType = ({ index, selectedPriceType }) => {
 
   .left,
   .right {
-    width: 100%; 
-    max-width: 100%; 
+    width: 100%;
+    max-width: 100%;
   }
 }
 </style>

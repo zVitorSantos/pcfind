@@ -13,15 +13,16 @@
           </tr>
         </thead>
         <tbody>
-            <tr v-for="(subtotal, index) in subtotals" :key="index">
-              <td>{{ `${subtotal.component} ${subtotal.quantity > 1 ? `${subtotal.quantity}x` : ''}` }}</td>
-              <td>{{ subtotal.subtotalCash }}</td>
-              <td>{{ subtotal.subtotalInstallment }}</td> 
-              <td>
-              <select v-model="subtotal.selectedPriceType" @change="updateSelectedPriceType(index, $event.target.value)">
-              <option value="cash">À vista</option>
-              <option value="installment">Parcelado</option>
-            </select>
+          <tr v-for="(subtotal, index) in subtotals" :key="index">
+            <td>{{ `${subtotal.component} ${subtotal.quantity > 1 ? `x${subtotal.quantity}` : ''}` }}</td>
+            <td>{{ subtotal.subtotalCash }}</td>
+            <td>{{ subtotal.subtotalInstallment }}</td>
+            <td>
+              <select v-model="subtotal.selectedPriceType"
+                @change="updateSelectedPriceType(index, $event.target.value)">
+                <option value="cash">À vista</option>
+                <option value="installment">Parcelado</option>
+              </select>
             </td>
           </tr>
         </tbody>
@@ -42,10 +43,10 @@ const componentNames = {
   'placa mãe': 'Placa Mãe',
   'processador': 'Processador',
   'memória': 'Memória RAM',
-  'hd': 'Disco Rígido',
+  'hd': 'HD',
   'ssd': 'SSD',
   'placa de vídeo': 'Placa de Vídeo',
-  'fonte': 'Fonte',
+  'fonte': 'Fonte de Alimentação',
   'cooler': 'Cooler',
   'gabinete': 'Gabinete',
   'monitor': 'Monitor',
@@ -68,6 +69,10 @@ const findComponentName = (title) => {
   for (const key in componentNames) {
     const normalizedKey = key.toLowerCase(); // Converter para minúsculas
     if (normalizedComponent.includes(normalizedKey)) {
+      // Se o componente for 'hd' ou 'ssd', retornar 'HD/SSD'
+      if (normalizedKey === 'hd' || normalizedKey === 'ssd') {
+        return 'HD/SSD';
+      }
       return componentNames[key]; // Retornar o nome correspondente
     }
   }
@@ -83,8 +88,8 @@ const subtotals = computed(() => {
 
   return props.items.map(item => {
     const quantity = Number(item.quantity);
-    const cashPrice = parseFloat(item.cashPrice.toString().replace(',', '.')) * quantity;
-    const installmentPrice = parseFloat(item.installmentPrice.toString().replace(',', '.')) * quantity;
+    const cashPrice = item.cashPrice ? parseFloat(item.cashPrice.toString().replace(',', '.')) * quantity : 0;
+    const installmentPrice = item.installmentPrice ? parseFloat(item.installmentPrice.toString().replace(',', '.')) * quantity : 0;
 
     if (isNaN(quantity) || isNaN(cashPrice) || isNaN(installmentPrice)) {
       // Handle error...
@@ -207,6 +212,11 @@ const updateSelectedPriceType = (index, selectedPriceType) => {
   text-align: left;
   background-color: #242424;
   color: white;
+}
+
+.subtotals th:nth-child(1),
+.subtotals td:nth-child(1) {
+  width: 100px;
 }
 
 .subtotals th:nth-child(4),
